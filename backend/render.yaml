@@ -1,0 +1,37 @@
+# Render 배포 설정 파일
+services:
+  - type: web
+    name: posture-analysis-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://your-frontend.vercel.app
+
+  - type: worker
+    name: posture-analysis-worker
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A tasks.analysis_task worker --loglevel=info
+    envVars:
+      - key: REDIS_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+
+  - type: pspg
+    name: posture-analysis-db
+    plan: free
+    databaseName: posture_analysis
+    user: posture_user
+
+  - type: redis
+    name: posture-analysis-redis
+    plan: free

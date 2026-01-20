@@ -1,0 +1,23 @@
+{
+  "name": "posture-analysis",
+  "version": "1.0.0",
+  "description": "YouTube 영상 자세 분석 시스템",
+  "private": true,
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspace=frontend",
+    "install:frontend": "cd frontend && npm install",
+    "install:backend": "cd backend && pip install -r requirements.txt"
+  },
+  "keywords": [
+    "posture",
+    "analysis",
+    "mediapipe",
+    "youtube"
+  ],
+  "author": "",
+  "license": "MIT"
+}
