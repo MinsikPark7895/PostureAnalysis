@@ -26,39 +26,50 @@ PostureAnalysis/
 - Celery (비동기 작업)
 - PostgreSQL
 
-## 시작하기
+## 🚀 빠른 시작
 
-### 1. Frontend 설정
+### 로컬 실행 (개발 모드 - 메모리 저장소)
 
+가장 간단한 방법입니다. PostgreSQL과 Redis 없이 실행 가능합니다.
+
+#### Backend
+```bash
+cd backend
+python -m venv venv
+venv\Scripts\activate  # Windows
+# source venv/bin/activate  # macOS/Linux
+pip install -r requirements.txt
+uvicorn api.main:app --reload
+```
+
+#### Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-### 2. Backend 설정
+서버는 `http://localhost:8000`, 프론트엔드는 `http://localhost:5173`에서 실행됩니다.
 
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn api.main:app --reload
-```
+### 프로덕션 모드 (PostgreSQL + Celery)
 
-### 3. 환경 변수 설정
+자세한 내용은 [QUICK_START.md](QUICK_START.md)를 참고하세요.
 
-#### Frontend (.env)
-```
-VITE_API_URL=http://localhost:8000
-```
+## 🌐 배포
 
-#### Backend (.env)
-```
-DATABASE_URL=postgresql://user:password@localhost/dbname
-REDIS_URL=redis://localhost:6379
-SECRET_KEY=your-secret-key
-```
+### Render (추천)
+
+1. **PostgreSQL 생성**: Dashboard → New → PostgreSQL
+2. **Redis 생성**: Dashboard → New → Redis
+3. **Web Service 생성**: 
+   - Root Directory: `backend`
+   - Build: `pip install -r requirements.txt`
+   - Start: `uvicorn api.main:app --host 0.0.0.0 --port $PORT`
+4. **Background Worker 생성**:
+   - Start: `celery -A tasks.analysis_task worker --loglevel=info`
+5. **Frontend 배포**: Vercel 사용
+
+자세한 내용은 [QUICK_START.md](QUICK_START.md)를 참고하세요.
 
 ## 배포
 
