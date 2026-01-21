@@ -27,19 +27,52 @@ class YouTubeProcessor:
         video_id = self._extract_video_id(youtube_url)
         output_path = self.temp_dir / f"{video_id}.mp4"
         
+        # User-Agent와 추가 옵션으로 403 에러 방지
         ydl_opts = {
             'format': 'best[height<=720]',  # 해상도 제한
             'outtmpl': str(output_path),
             'quiet': True,
             'no_warnings': True,
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'web'],  # 다양한 클라이언트 시도
+                }
+            },
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-us,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'Connection': 'keep-alive',
+            },
         }
         
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(youtube_url, download=True)
-            duration = info.get('duration', 0)
-            
-            if duration > max_duration:
-                raise ValueError(f"영상 길이가 {max_duration}초를 초과합니다")
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(youtube_url, download=True)
+                duration = info.get('duration', 0)
+                
+                if duration > max_duration:
+                    raise ValueError(f"영상 길이가 {max_duration}초를 초과합니다")
+        except Exception as e:
+            # 403 에러 시 더 간단한 옵션으로 재시도
+            if '403' in str(e) or 'Forbidden' in str(e):
+                ydl_opts_simple = {
+                    'format': 'best',
+                    'outtmpl': str(output_path),
+                    'quiet': True,
+                    'no_warnings': True,
+                    'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                }
+                with yt_dlp.YoutubeDL(ydl_opts_simple) as ydl:
+                    info = ydl.extract_info(youtube_url, download=True)
+                    duration = info.get('duration', 0)
+                    
+                    if duration > max_duration:
+                        raise ValueError(f"영상 길이가 {max_duration}초를 초과합니다")
+            else:
+                raise
         
         return str(output_path)
     
