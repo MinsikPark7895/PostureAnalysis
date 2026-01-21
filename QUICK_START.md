@@ -15,10 +15,16 @@ cd backend
 python -m venv venv
 
 # 가상 환경 활성화
-# Windows:
+# Windows PowerShell (오류 발생 시 아래 참고):
 venv\Scripts\activate
+# Windows CMD:
+venv\Scripts\activate.bat
 # macOS/Linux:
 source venv/bin/activate
+
+# PowerShell 실행 정책 오류 발생 시:
+# Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+# 또는 CMD를 사용하세요
 
 # 의존성 설치
 pip install -r requirements.txt
