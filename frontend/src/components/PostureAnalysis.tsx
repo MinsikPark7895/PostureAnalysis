@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { analysisApi, type AnalysisStatus, type AnalysisResult } from '../services/api'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer } from 'recharts'
 import './PostureAnalysis.css'
 
 interface PostureAnalysisProps {
@@ -10,6 +11,8 @@ const PostureAnalysis = ({ analysisId }: PostureAnalysisProps) => {
   const [status, setStatus] = useState<AnalysisStatus | null>(null)
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [currentFrame, setCurrentFrame] = useState<number>(0)
+  const [isPlaying, setIsPlaying] = useState<boolean>(false)
+  const [playSpeed, setPlaySpeed] = useState<number>(1.0) // 1.0 = 1fps, 2.0 = 2fps 등
 
   useEffect(() => {
     if (!analysisId) {
@@ -65,6 +68,68 @@ const PostureAnalysis = ({ analysisId }: PostureAnalysisProps) => {
     }
   }
 
+  // 그래프 데이터 생성
+  const chartData = useMemo(() => {
+    if (!result || result.frames.length === 0) return []
+    return result.frames.map(frame => ({
+      time: frame.timestamp,
+      score: frame.score,
+      frameNumber: frame.frame_number
+    }))
+  }, [result])
+
+  // 자동 재생 로직
+  useEffect(() => {
+    if (!isPlaying || !result || result.frames.length === 0) return
+
+    const interval = setInterval(() => {
+      setCurrentFrame(prev => {
+        if (prev >= result.frames.length - 1) {
+          setIsPlaying(false) // 마지막 프레임에 도달하면 정지
+          return prev
+        }
+        return prev + 1
+      })
+    }, 1000 / playSpeed) // playSpeed에 따라 간격 조절 (1fps = 1000ms, 2fps = 500ms)
+
+    return () => clearInterval(interval)
+  }, [isPlaying, result, playSpeed])
+
+  // 결과가 로드되면 currentFrame 초기화
+  useEffect(() => {
+    if (result && result.frames.length > 0) {
+      setCurrentFrame(0)
+      setIsPlaying(false)
+    }
+  }, [result])
+
+  // 그래프 클릭 핸들러
+  const handleChartClick = (data: any) => {
+    if (!data || !result) return
+    const clickedTime = data.activeLabel || data.time
+    // 가장 가까운 프레임 찾기
+    const closestFrame = result.frames.reduce((closest, frame, index) => {
+      const currentDiff = Math.abs(frame.timestamp - clickedTime)
+      const closestDiff = Math.abs(result.frames[closest].timestamp - clickedTime)
+      return currentDiff < closestDiff ? index : closest
+    }, 0)
+    setCurrentFrame(closestFrame)
+  }
+
+  const togglePlay = () => {
+    if (!result || result.frames.length === 0) return
+    if (currentFrame >= result.frames.length - 1) {
+      // 마지막 프레임이면 처음으로
+      setCurrentFrame(0)
+    }
+    setIsPlaying(!isPlaying)
+  }
+
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newFrame = parseInt(e.target.value)
+    handleFrameChange(newFrame)
+  }
+
   return (
     <div className="posture-analysis">
       <h2>자세 분석 결과</h2>
@@ -114,38 +179,143 @@ const PostureAnalysis = ({ analysisId }: PostureAnalysisProps) => {
           </div>
 
           {result.frames.length > 0 && (
-            <div className="frame-navigation">
-              <h3>프레임 탐색</h3>
-              <div className="frame-controls">
-                <button
-                  onClick={() => handleFrameChange(currentFrame - 1)}
-                  disabled={currentFrame === 0}
-                >
-                  이전
-                </button>
-                <span>
-                  {currentFrame + 1} / {result.frames.length}
-                </span>
-                <button
-                  onClick={() => handleFrameChange(currentFrame + 1)}
-                  disabled={currentFrame === result.frames.length - 1}
-                >
-                  다음
-                </button>
+            <>
+              {/* 점수 그래프 */}
+              <div className="score-chart-container">
+                <h3>시간에 따른 자세 점수</h3>
+                <ResponsiveContainer width="100%" height={200}>
+                  <LineChart
+                    data={chartData}
+                    onClick={handleChartClick}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                    <XAxis 
+                      dataKey="time" 
+                      label={{ value: '시간 (초)', position: 'insideBottom', offset: -5 }}
+                      stroke="#aaa"
+                    />
+                    <YAxis 
+                      label={{ value: '점수', angle: -90, position: 'insideLeft' }}
+                      domain={[0, 100]}
+                      stroke="#aaa"
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#2a2a2a', border: '1px solid #444' }}
+                      labelStyle={{ color: '#fff' }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="score" 
+                      stroke="#646cff" 
+                      strokeWidth={2}
+                      dot={{ r: 3, fill: '#646cff' }}
+                      activeDot={{ r: 6 }}
+                    />
+                    <ReferenceLine 
+                      x={result.frames[currentFrame]?.timestamp} 
+                      stroke="#ff6b6b" 
+                      strokeWidth={2}
+                      strokeDasharray="5 5"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+                <p className="chart-hint">그래프를 클릭하면 해당 시점으로 이동합니다</p>
               </div>
-              <div className="current-frame-score">
-                프레임 {currentFrame + 1} 점수: {result.frames[currentFrame].score.toFixed(1)}
-              </div>
-            </div>
-          )}
 
-          <div className="skeleton-display">
-            <h3>스켈리톤 데이터</h3>
-            <div className="skeleton-info">
-              <p>총 {result.summary.total_frames}개 프레임 분석 완료</p>
-              <p>관절 데이터는 API를 통해 조회 가능합니다</p>
-            </div>
-          </div>
+              {/* 재생 컨트롤 */}
+              <div className="playback-controls">
+                <h3>프레임 재생</h3>
+                <div className="playback-buttons">
+                  <button
+                    onClick={() => handleFrameChange(0)}
+                    disabled={currentFrame === 0}
+                    className="control-button"
+                  >
+                    ⏮ 처음
+                  </button>
+                  <button
+                    onClick={() => handleFrameChange(currentFrame - 1)}
+                    disabled={currentFrame === 0}
+                    className="control-button"
+                  >
+                    ⏪ 이전
+                  </button>
+                  <button
+                    onClick={togglePlay}
+                    className="control-button play-button"
+                  >
+                    {isPlaying ? '⏸ 일시정지' : '▶ 재생'}
+                  </button>
+                  <button
+                    onClick={() => handleFrameChange(currentFrame + 1)}
+                    disabled={currentFrame === result.frames.length - 1}
+                    className="control-button"
+                  >
+                    다음 ⏩
+                  </button>
+                  <button
+                    onClick={() => handleFrameChange(result.frames.length - 1)}
+                    disabled={currentFrame === result.frames.length - 1}
+                    className="control-button"
+                  >
+                    끝 ⏭
+                  </button>
+                </div>
+                <div className="playback-speed">
+                  <label>재생 속도:</label>
+                  <select
+                    value={playSpeed}
+                    onChange={(e) => setPlaySpeed(parseFloat(e.target.value))}
+                    disabled={isPlaying}
+                  >
+                    <option value={0.5}>0.5x</option>
+                    <option value={1.0}>1x</option>
+                    <option value={2.0}>2x</option>
+                    <option value={4.0}>4x</option>
+                  </select>
+                </div>
+                <div className="frame-slider-container">
+                  <input
+                    type="range"
+                    min="0"
+                    max={result.frames.length - 1}
+                    value={currentFrame}
+                    onChange={handleSliderChange}
+                    className="frame-slider"
+                  />
+                  <div className="slider-labels">
+                    <span>0초</span>
+                    <span>{result.frames[result.frames.length - 1]?.timestamp || 0}초</span>
+                  </div>
+                </div>
+                <div className="current-frame-info">
+                  <span>프레임 {currentFrame + 1} / {result.frames.length}</span>
+                  <span>시간: {result.frames[currentFrame]?.timestamp || 0}초</span>
+                  <span>점수: {result.frames[currentFrame]?.score.toFixed(1) || 0}</span>
+                </div>
+              </div>
+
+              {/* 스켈리톤 프레임 표시 */}
+              <div className="skeleton-display">
+                <h3>스켈리톤 프레임</h3>
+                <div className="skeleton-frame-viewer">
+                  {result.frames[currentFrame]?.image ? (
+                    <img
+                      src={result.frames[currentFrame].image}
+                      alt={`Frame ${currentFrame + 1} skeleton`}
+                      className="skeleton-image"
+                    />
+                  ) : (
+                    <p>이 프레임에는 스켈리톤 이미지가 없습니다.</p>
+                  )}
+                </div>
+                <div className="skeleton-info">
+                  <p>총 {result.summary.total_frames}개 프레임 분석 완료</p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

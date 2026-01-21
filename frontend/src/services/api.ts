@@ -50,12 +50,16 @@ export interface FrameData {
   frame_number: number
   timestamp: number
   score: number
-  landmarks: Record<string, {
-    x: number
-    y: number
-    z: number
-    visibility: number
-  }>
+  landmarks: Record<
+    string,
+    {
+      x: number
+      y: number
+      z: number
+      visibility: number
+    }
+  >
+  image?: string
 }
 
 export const analysisApi = {
