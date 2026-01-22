@@ -72,7 +72,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
-  gap: 1rem;
+  column-gap: 1rem;
+  row-gap: 0.25rem; /* 위아래 간격을 현재의 25%로 줄임 (1rem * 0.25 = 0.25rem) */
   padding: 1rem;
 }
 

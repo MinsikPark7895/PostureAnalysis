@@ -210,7 +210,6 @@ const PostureAnalysis = ({
   if (showOnlyScore) {
     return (
       <div className="posture-analysis">
-        {renderStatusMessage()}
         {result && result.status === 'completed' && (
           <>
             <div className="score-display">
@@ -304,7 +303,6 @@ const PostureAnalysis = ({
   if (showOnlyPlayback) {
     return (
       <div className="posture-analysis">
-        {renderStatusMessage()}
         {result && result.status === 'completed' && result.frames.length > 0 && (
           <div className="playback-controls">
             <h3>프레임 재생</h3>
