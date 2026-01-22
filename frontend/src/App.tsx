@@ -9,6 +9,10 @@ function App() {
   const [analysisId, setAnalysisId] = useState<string | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // 공유 상태: 모든 섹션에서 동일한 프레임 상태 사용
+  const [sharedCurrentFrame, setSharedCurrentFrame] = useState<number>(0)
+  const [sharedIsPlaying, setSharedIsPlaying] = useState<boolean>(false)
+  const [sharedPlaySpeed, setSharedPlaySpeed] = useState<number>(1.0)
 
   const handleAnalyze = async (url: string) => {
     if (!url.trim()) {
@@ -63,11 +67,48 @@ function App() {
         {error && <div className="error-message">{error}</div>}
       </header>
       <main className="main-content">
+        {/* 왼쪽 위: 유튜브 영상 */}
         <div className="video-section">
           <VideoPlayer videoUrl={videoUrl} />
         </div>
-        <div className="analysis-section">
-          <PostureAnalysis analysisId={analysisId} />
+        {/* 왼쪽 아래: 자세 분석 점수 및 그래프 */}
+        <div className="score-section">
+          <PostureAnalysis 
+            analysisId={analysisId} 
+            showOnlyScore={true}
+            currentFrame={sharedCurrentFrame}
+            setCurrentFrame={setSharedCurrentFrame}
+            isPlaying={sharedIsPlaying}
+            setIsPlaying={setSharedIsPlaying}
+            playSpeed={sharedPlaySpeed}
+            setPlaySpeed={setSharedPlaySpeed}
+          />
+        </div>
+        {/* 오른쪽 위: 스켈리톤 프레임 */}
+        <div className="skeleton-section">
+          <PostureAnalysis 
+            analysisId={analysisId} 
+            showOnlySkeleton={true}
+            currentFrame={sharedCurrentFrame}
+            setCurrentFrame={setSharedCurrentFrame}
+            isPlaying={sharedIsPlaying}
+            setIsPlaying={setSharedIsPlaying}
+            playSpeed={sharedPlaySpeed}
+            setPlaySpeed={setSharedPlaySpeed}
+          />
+        </div>
+        {/* 오른쪽 아래: 프레임 재생 */}
+        <div className="playback-section">
+          <PostureAnalysis 
+            analysisId={analysisId} 
+            showOnlyPlayback={true}
+            currentFrame={sharedCurrentFrame}
+            setCurrentFrame={setSharedCurrentFrame}
+            isPlaying={sharedIsPlaying}
+            setIsPlaying={setSharedIsPlaying}
+            playSpeed={sharedPlaySpeed}
+            setPlaySpeed={setSharedPlaySpeed}
+          />
         </div>
       </main>
     </div>
