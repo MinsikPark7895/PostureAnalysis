@@ -17,11 +17,12 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
     // YouTube IFrame API로 영상 임베드
     const iframe = document.createElement('iframe')
     iframe.src = `https://www.youtube.com/embed/${videoId}`
-    iframe.width = '100%'
-    iframe.height = '100%'
+    iframe.setAttribute('width', '100%')
+    iframe.setAttribute('height', '100%')
     iframe.frameBorder = '0'
     iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
     iframe.allowFullscreen = true
+    iframe.style.border = 'none'
 
     containerRef.current.innerHTML = ''
     containerRef.current.appendChild(iframe)
@@ -35,7 +36,7 @@ const VideoPlayer = ({ videoUrl }: VideoPlayerProps) => {
 
   return (
     <div className="video-player">
-      <div ref={containerRef} style={{ width: '100%', height: '100%', minHeight: '400px' }} />
+      <div ref={containerRef} className="video-container" />
       {!videoUrl && (
         <div className="placeholder">
           <p>YouTube URL을 입력하고 분석을 시작하세요</p>

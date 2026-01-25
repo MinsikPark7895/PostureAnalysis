@@ -6,7 +6,10 @@ from services.pose_detector import PoseDetector
 from services.posture_analyzer import PostureAnalyzer
 from models.memory_store import memory_store
 import asyncio
+import base64
+import cv2
 from typing import Dict, List
+
 
 class AnalysisProcessor:
     """분석 처리 클래스"""
@@ -45,8 +48,8 @@ class AnalysisProcessor:
                 raise ValueError("프레임을 추출할 수 없습니다")
             
             # 3. 자세 인식 및 분석
-            results = []
-            scores = []
+            results: List[Dict] = []
+            scores: List[float] = []
             
             for idx, frame in enumerate(frames):
                 # 진행률 업데이트 (20% ~ 90%)
@@ -67,7 +70,7 @@ class AnalysisProcessor:
                     scores.append(score)
                     
                     # 관절 좌표를 JSON 직렬화 가능한 형태로 변환
-                    landmarks_dict = {}
+                    landmarks_dict: Dict[str, Dict[str, float]] = {}
                     for key, value in pose_result['landmarks'].items():
                         landmarks_dict[str(key)] = {
                             'x': float(value['x']),
@@ -75,12 +78,25 @@ class AnalysisProcessor:
                             'z': float(value['z']),
                             'visibility': float(value['visibility'])
                         }
+
+                    # 스켈리톤이 그려진 프레임 생성
+                    annotated = self.pose_detector.draw_skeleton(
+                        frame,
+                        pose_result['raw_landmarks']
+                    )
+                    image_data_url = None
+                    ok, buffer = cv2.imencode(".jpg", annotated)
+                    if ok:
+                        img_bytes = buffer.tobytes()
+                        img_b64 = base64.b64encode(img_bytes).decode("utf-8")
+                        image_data_url = f"data:image/jpeg;base64,{img_b64}"
                     
                     results.append({
                         'frame_number': idx,
                         'timestamp': idx,  # 초 단위 (fps=1이므로)
                         'score': float(score),
-                        'landmarks': landmarks_dict
+                        'landmarks': landmarks_dict,
+                        'image': image_data_url,
                     })
             
             # 4. 통계 계산
@@ -135,8 +151,8 @@ class AnalysisProcessor:
                 raise ValueError("프레임을 추출할 수 없습니다")
             
             # 3. 자세 인식 및 분석
-            results = []
-            scores = []
+            results: List[Dict] = []
+            scores: List[float] = []
             
             for idx, frame in enumerate(frames):
                 progress = 20 + int((idx / total_frames) * 70)
@@ -150,7 +166,7 @@ class AnalysisProcessor:
                     )
                     scores.append(score)
                     
-                    landmarks_dict = {}
+                    landmarks_dict: Dict[str, Dict[str, float]] = {}
                     for key, value in pose_result['landmarks'].items():
                         landmarks_dict[str(key)] = {
                             'x': float(value['x']),
@@ -158,12 +174,25 @@ class AnalysisProcessor:
                             'z': float(value['z']),
                             'visibility': float(value['visibility'])
                         }
+
+                    # 스켈리톤이 그려진 프레임 생성
+                    annotated = self.pose_detector.draw_skeleton(
+                        frame,
+                        pose_result['raw_landmarks']
+                    )
+                    image_data_url = None
+                    ok, buffer = cv2.imencode(".jpg", annotated)
+                    if ok:
+                        img_bytes = buffer.tobytes()
+                        img_b64 = base64.b64encode(img_bytes).decode("utf-8")
+                        image_data_url = f"data:image/jpeg;base64,{img_b64}"
                     
                     results.append({
                         'frame_number': idx,
                         'timestamp': idx,
                         'score': float(score),
-                        'landmarks': landmarks_dict
+                        'landmarks': landmarks_dict,
+                        'image': image_data_url,
                     })
             
             # 4. 통계 계산
